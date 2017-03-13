@@ -113,8 +113,6 @@ func handle(conn net.Conn, store *nxtdb.Store) {
 
 	cmdParser := NewRedisCmdParser()
 
-
-
 	for {
 		cmd, err := cmdParser.ParseCommand(bufio.NewReader(conn))
 		if err == nil || err == io.EOF {
