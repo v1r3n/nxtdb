@@ -3,6 +3,8 @@ package nxtdb
 import (
 	"errors"
 	"sync"
+	"os"
+	"log"
 )
 
 var mutex = &sync.RWMutex{}
@@ -117,7 +119,35 @@ func execute(cmd Command, store *MemStore) ([][]byte, error) {
 		val := store.hgetall(cmd.Key)
 		mutex.RUnlock()
 		return val, nil
+	} else if cmd.Cmd == "save" {
+		mutex.Lock()
+		saveToDisk(store)
+		mutex.Unlock()
 	}
 
 	return nil, errors.New("Unsupported command")
+}
+
+func saveToDisk(store *MemStore) {
+	f, err := os.OpenFile("/Users/viren/test.file", os.O_CREATE|os.O_RDWR|os.O_APPEND, 0755)
+	if err != nil {
+		log.Println(err.Error())
+		return
+	}
+	defer f.Close()
+
+	for key, value := range store.data {
+		f.Write([]byte(key))
+		f.Write()
+		f.Write(value)
+
+	}
+	for key, value := range store.hashes {
+		f.Write([]byte(key))
+		for k1, v1 := range value {
+			f.Write([]byte(k1))
+			f.Write(v1)
+		}
+	}
+	f.Sync()
 }

@@ -3,7 +3,7 @@ package redis
 import (
 	"strconv"
 	"bufio"
-	nxtdb  "../../nxtdb"
+	nxtdb  "../"
 	"net"
 	"log"
 	"io"
