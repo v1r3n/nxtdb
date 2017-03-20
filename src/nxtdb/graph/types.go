@@ -1,4 +1,4 @@
-package nxtdb
+package graph
 
 type Vertex struct {
 	label      string

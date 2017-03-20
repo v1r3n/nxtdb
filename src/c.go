@@ -13,10 +13,21 @@ import (
 	uuid "./github.com/google/uuid"
 	"strings"
 	"strconv"
+	graph "./nxtdb/graph"
+	rocksgraph "./nxtdb/rocksdb"
 )
 
 
 func main() {
+	vertex := graph.NewVertex("typeA", []byte(uuid.New().String()))
+	vertex.Property("name", "viren")
+	gdb := rocksgraph.NewGraph("./graph.db")
+	fmt.Println("Graph", gdb)
+	gdb.Open()
+	gdb.Add(&vertex)
+
+}
+func main22() {
 	fmt.Println("Hello World")
 	options := grocks.NewDefaultOptions()
 	options.SetCreateIfMissing(true)

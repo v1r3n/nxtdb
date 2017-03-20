@@ -138,7 +138,6 @@ func saveToDisk(store *MemStore) {
 
 	for key, value := range store.data {
 		f.Write([]byte(key))
-		f.Write()
 		f.Write(value)
 
 	}

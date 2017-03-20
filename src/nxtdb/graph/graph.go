@@ -1,4 +1,4 @@
-package nxtdb
+package graph
 
 type DuplicateVertexError struct {
 	message string
@@ -34,22 +34,22 @@ type Graph interface {
 	Close()
 
 	//Indexing
-	CreateIndex(string label, propertyKey string)
+	CreateIndex(label string, propertyKey string)
 
 	//Create
-	Add(vertex *Vertex) (string, DuplicateVertexError)
-	AddProperty(id string, key string, value []byte) NoSuchVertexError
-	AddProperties(id string, map[string][]byte) NoSuchVertexError
-	AddEdge(from string, to string, label string) NoSuchVertexError
+	Add(vertex *Vertex) string
+	AddProperty(id string, key string, value []byte)
+	AddProperties(id string, properties map[string][]byte)
+	AddEdge(from string, to string, label string)
 
 	//Remove
-	RemoveVertex(id string) NoSuchVertexError
-	RemoveProperty(id string, key string) NoSuchVertexError
-	RemoveEdge(from string, to string, label string) NoSuchVertexError
+	RemoveVertex(id string)
+	RemoveProperty(id string, key string)
+	RemoveEdge(from string, to string, label string)
 
 	//Read operations
 	GetVertex(id string) *Vertex
 	GetVerticesByLabel(vertexLabel string) *VertexIterator
-	GetVertices(id string, edgeLabel string, outgoing bool) (*VertexIterator, NoSuchVertexError)
+	GetVertices(id string, edgeLabel string, outgoing bool) *VertexIterator
 	CountVertices(vertexLabel string) uint64
 }
