@@ -1,5 +1,5 @@
 # NXTDB
-NxtDB is a graph database implementation using RocksDB as storage engine
+NXTDB is a graph database implementation using RocksDB as storage engine
 
 # Goals
 1. Define types and interfaces
