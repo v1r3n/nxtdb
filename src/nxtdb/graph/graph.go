@@ -37,7 +37,7 @@ type Graph interface {
 	CreateIndex(label string, propertyKey string)
 
 	//Create
-	Add(vertex *Vertex) string
+	Add(label string, properties...VertexProperty) string
 	AddProperty(id string, key string, value []byte)
 	AddProperties(id string, properties map[string][]byte)
 	AddEdge(from string, to string, label string)
@@ -48,7 +48,7 @@ type Graph interface {
 	RemoveEdge(from string, to string, label string)
 
 	//Read operations
-	GetVertex(id string) *Vertex
+	GetVertex(id string) Vertex
 	GetVerticesByLabel(vertexLabel string) *VertexIterator
 	GetVertices(id string, edgeLabel string, outgoing bool) *VertexIterator
 	CountVertices(vertexLabel string) uint64

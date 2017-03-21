@@ -11,22 +11,57 @@ import (
 	"fmt"
 	grocks "./github.com/v1r3n/gorocksdb"
 	uuid "./github.com/google/uuid"
+	randomdata "./github.com/Pallinder/go-randomdata"
 	"strings"
 	"strconv"
-	graph "./nxtdb/graph"
 	rocksgraph "./nxtdb/rocksdb"
+	graph "./nxtdb/graph"
+	"time"
+	"log"
 )
 
 
 func main() {
-	vertex := graph.NewVertex("typeA", []byte(uuid.New().String()))
-	vertex.Property("name", "viren")
 	gdb := rocksgraph.NewGraph("./graph.db")
-	fmt.Println("Graph", gdb)
 	gdb.Open()
-	gdb.Add(&vertex)
+	var writeTime int64 = 0
+	var readTime int64 = 0
 
+	for i := 0; i < 10; i++ {
+
+		properties := []graph.VertexProperty {
+			rocksgraph.Property("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
+			rocksgraph.Property("last", []byte(randomdata.LastName())),
+			rocksgraph.Property("address", []byte(randomdata.Address())),
+			rocksgraph.Property("email", []byte(randomdata.Email())),
+			rocksgraph.Property("currency", []byte(randomdata.Currency())),
+			rocksgraph.Property("macaddress", []byte(randomdata.MacAddress())),
+			rocksgraph.Property("uid", []byte(uuid.New().String())),
+		}
+
+
+		start := time.Now()
+		id := gdb.Add("test_label", properties...)
+		gdb.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
+		diff := time.Now().Sub(start)
+		writeTime += diff.Nanoseconds()
+
+		start1 := time.Now()
+		gdb.GetVertex(id)
+		//log.Println("found", string(vtx.Property("first")), string(vtx.Property("test_key")))
+		diff2 := time.Now().Sub(start1)
+		readTime += diff2.Nanoseconds()
+
+
+	}
+
+	log.Println("graph write time", writeTime)
+	log.Println("graph read time", readTime)
+	log.Println("graph time", writeTime + readTime)
+
+	defer gdb.Close()
 }
+
 func main22() {
 	fmt.Println("Hello World")
 	options := grocks.NewDefaultOptions()
