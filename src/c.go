@@ -18,16 +18,26 @@ import (
 	graph "./nxtdb/graph"
 	"time"
 	"log"
+	"os"
 )
 
 
 func main() {
+	count := 1
+	if len(os.Args) > 1 {
+		c, errx := strconv.Atoi(os.Args[1])
+		if errx != nil {
+			log.Fatalln("expected number", errx.Error())
+		}
+		count = c
+	}
+	log.Println("loop count", count)
 	gdb := rocksgraph.NewGraph("./graph.db")
 	gdb.Open()
 	var writeTime int64 = 0
 	var readTime int64 = 0
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < count; i++ {
 
 		properties := []graph.VertexProperty {
 			rocksgraph.Property("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
@@ -48,7 +58,6 @@ func main() {
 
 		start1 := time.Now()
 		gdb.GetVertex(id)
-		//log.Println("found", string(vtx.Property("first")), string(vtx.Property("test_key")))
 		diff2 := time.Now().Sub(start1)
 		readTime += diff2.Nanoseconds()
 
