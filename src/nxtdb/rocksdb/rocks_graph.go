@@ -86,7 +86,7 @@ func (db *RocksDBGraph) GetVertex(id string) Vertex {
 }
 
 func (db RocksDBGraph) GetVerticesByLabel(vertexLabel string) *VertexIterator {
-	
+
 	options := grocks.NewDefaultReadOptions()
 	iterator := db.db.NewIteratorCF(options, db.cfLabel)
 	iterator.Seek([]byte(vertexLabel))
