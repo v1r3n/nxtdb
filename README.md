@@ -20,4 +20,5 @@ NXTDB is a graph database implementation using RocksDB as storage engine
 8. Tinkerpop support?
 9. Database Management and Options
 10. Performance Tests on a single node
+11. Error Handling
 
