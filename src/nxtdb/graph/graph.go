@@ -27,6 +27,11 @@ type VertexIterator interface {
 	Close()
 }
 
+type Transaction interface {
+	Commit()
+	Rollback()
+}
+
 //Graph interface
 type Graph interface {
 
@@ -65,6 +70,6 @@ type Graph interface {
 	GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator
 
 	//Transaction management
-	BeginTransaction() Transaction
+	Tx() Transaction
 
 }

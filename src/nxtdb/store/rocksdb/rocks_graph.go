@@ -63,6 +63,7 @@ func (db RocksDBGraph) AddLabel(label string) Label {
 	}
 	return graphLabel
 }
+
 func (db RocksDBGraph) GetLabel(label string) Label {
 	opts := grocks.NewDefaultReadOptions()
 	existing, err := db.db.Get(opts, []byte(label))
@@ -223,7 +224,7 @@ func (db RocksDBGraph) RemoveEdge(from string, to string, label string) {
 
 }
 
-func (db RocksDBGraph) BeginTransaction() Transaction {
+func (db RocksDBGraph) Tx() Transaction {
 	return nil
 }
 func NewGraph(path string) Graph {

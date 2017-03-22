@@ -26,8 +26,3 @@ type Property interface {
 	Key() string
 	Value() []byte
 }
-
-type Transaction interface {
-	Commit()
-	Rollback()
-}
