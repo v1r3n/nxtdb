@@ -1,6 +1,6 @@
 package rocksdb
 
-import "nxtdb/graph"
+import . "nxtdb/graph"
 
 type GraphLabel struct {
 	label string
@@ -8,7 +8,7 @@ type GraphLabel struct {
 }
 
 type GraphVertex struct {
-	label      graph.Label
+	label      Label
 	properties map[string][]byte
 	id         []byte
 }
@@ -40,11 +40,11 @@ func (vtx GraphVertex) Property(name string) []byte {
 	return vtx.properties[name]
 }
 
-func (vtx GraphVertex) Properties() []graph.Property {
+func (vtx GraphVertex) Properties() []Property {
 	return nil
 }
 
-func (vtx GraphVertex) Label() graph.Label {
+func (vtx GraphVertex) Label() Label {
 	return vtx.label
 }
 
@@ -64,7 +64,7 @@ func (prop GraphProperty) Value() []byte {
 	return prop.value
 }
 
-func Property(key string, value []byte) GraphProperty {
+func NewProperty(key string, value []byte) GraphProperty {
 	return GraphProperty{
 		key : key,
 		value : value,

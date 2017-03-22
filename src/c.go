@@ -35,22 +35,23 @@ func main() {
 	var writeTime int64 = 0
 	var readTime int64 = 0
 
+	gdb.AddLabel("countryx123")
 	countryLabel := gdb.AddLabel("country")
 	testLabel := gdb.AddLabel("test")
 	belongsTo := gdb.AddLabel("belongsTo")
 
-	country := gdb.Add(countryLabel, rocksgraph.Property("country", []byte(randomdata.Country(randomdata.FullCountry))))
+	country := gdb.Add(countryLabel, rocksgraph.NewProperty("country", []byte(randomdata.Country(randomdata.FullCountry))))
 
 	for i := 0; i < count; i++ {
 
 		properties := []graph.Property {
-			rocksgraph.Property("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
-			rocksgraph.Property("last", []byte(randomdata.LastName())),
-			rocksgraph.Property("address", []byte(randomdata.Address())),
-			rocksgraph.Property("email", []byte(randomdata.Email())),
-			rocksgraph.Property("currency", []byte(randomdata.Currency())),
-			rocksgraph.Property("macaddress", []byte(randomdata.MacAddress())),
-			rocksgraph.Property("uid", []byte(uuid.New().String())),
+			rocksgraph.NewProperty("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
+			rocksgraph.NewProperty("last", []byte(randomdata.LastName())),
+			rocksgraph.NewProperty("address", []byte(randomdata.Address())),
+			rocksgraph.NewProperty("email", []byte(randomdata.Email())),
+			rocksgraph.NewProperty("currency", []byte(randomdata.Currency())),
+			rocksgraph.NewProperty("macaddress", []byte(randomdata.MacAddress())),
+			rocksgraph.NewProperty("uid", []byte(uuid.New().String())),
 		}
 
 

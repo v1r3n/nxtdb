@@ -64,4 +64,7 @@ type Graph interface {
 	GetVerticesByLabel(vertexLabel Label) VertexIterator
 	GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator
 
+	//Transaction management
+	BeginTransaction() Transaction
+
 }

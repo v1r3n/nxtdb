@@ -7,7 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"encoding/binary"
-	"nxtdb/graph"
+	. "nxtdb/graph"
 )
 
 type RocksDBGraph struct {
@@ -46,11 +46,11 @@ func (db *RocksDBGraph) Close() {
 	db.db.Close()
 }
 
-func (db RocksDBGraph) AddLabel(label string) graph.Label {
+func (db RocksDBGraph) AddLabel(label string) Label {
 	opts := grocks.NewDefaultReadOptions()
 	existing, err := db.db.Get(opts, []byte(label))
 	var data []byte
-	if err != nil || existing == nil {
+	if err != nil || existing.Size() == 0 {
 		data = []byte(uuid.New().String())
 		db.db.Put(grocks.NewDefaultWriteOptions(), []byte(label), data)
 	} else {
@@ -63,7 +63,7 @@ func (db RocksDBGraph) AddLabel(label string) graph.Label {
 	}
 	return graphLabel
 }
-func (db RocksDBGraph) GetLabel(label string) graph.Label {
+func (db RocksDBGraph) GetLabel(label string) Label {
 	opts := grocks.NewDefaultReadOptions()
 	existing, err := db.db.Get(opts, []byte(label))
 	if err != nil || existing == nil {
@@ -75,7 +75,7 @@ func (db RocksDBGraph) GetLabel(label string) graph.Label {
 	}
 	return graphLabel
 }
-func (db *RocksDBGraph) Add(label graph.Label, properties ...graph.Property) string {
+func (db *RocksDBGraph) Add(label Label, properties ...Property) string {
 	id := uuid.New().String()
 	vtx := GraphVertex{
 		id : []byte(id),
@@ -94,7 +94,7 @@ func (db *RocksDBGraph) Add(label graph.Label, properties ...graph.Property) str
 	return id
 }
 
-func (db *RocksDBGraph) GetVertex(id string) graph.Vertex {
+func (db *RocksDBGraph) GetVertex(id string) Vertex {
 	opts := grocks.NewDefaultReadOptions()
 	data, err := db.db.GetCF(opts, db.cfhVtx, []byte(id))
 	if err != nil {
@@ -107,7 +107,7 @@ func (db *RocksDBGraph) GetVertex(id string) graph.Vertex {
 	return vtx
 }
 
-func (db RocksDBGraph) AddEdge(from string, to string, label graph.Label) {
+func (db RocksDBGraph) AddEdge(from string, to string, label Label) {
 	buf := new(bytes.Buffer)
 	buf.WriteString(from)
 	buf.WriteString(label.Id())
@@ -139,7 +139,7 @@ type GraphVertexIterator struct {
 func (it *GraphVertexIterator) open() {
 	it.iterator.Seek(it.prefix)
 }
-func (it *GraphVertexIterator) Next() graph.Vertex {
+func (it *GraphVertexIterator) Next() Vertex {
 	if it.iterator.ValidForPrefix(it.prefix) {
 		id := string(it.iterator.Value().Data())
 		it.iterator.Next()
@@ -154,7 +154,7 @@ func (it *GraphVertexIterator) Close() {
 	it.iterator.Close()
 }
 
-func (db RocksDBGraph) GetVertices(id string, edgeLabel graph.Label, outgoing bool) graph.VertexIterator {
+func (db RocksDBGraph) GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator {
 	buf := new(bytes.Buffer)
 	buf.WriteString(id)
 	buf.WriteString(edgeLabel.Id())
@@ -178,7 +178,7 @@ func (db RocksDBGraph) GetVertices(id string, edgeLabel graph.Label, outgoing bo
 	return &vi
 }
 
-func (db RocksDBGraph) GetVerticesByLabel(vertexLabel graph.Label) graph.VertexIterator {
+func (db RocksDBGraph) GetVerticesByLabel(vertexLabel Label) VertexIterator {
 
 	/*
 	options := grocks.NewDefaultReadOptions()
@@ -223,7 +223,10 @@ func (db RocksDBGraph) RemoveEdge(from string, to string, label string) {
 
 }
 
-func NewGraph(path string) graph.Graph {
+func (db RocksDBGraph) BeginTransaction() Transaction {
+	return nil
+}
+func NewGraph(path string) Graph {
 	return &RocksDBGraph{
 		dbPath:path,
 	}

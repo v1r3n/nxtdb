@@ -27,3 +27,7 @@ type Property interface {
 	Value() []byte
 }
 
+type Transaction interface {
+	Commit()
+	Rollback()
+}
