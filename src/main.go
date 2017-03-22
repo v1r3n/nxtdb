@@ -1,8 +1,8 @@
 package main
 
 import (
-	redis "./nxtdb/redis"
-	nxtdb "./nxtdb"
+	"./nxtdb/redis"
+	"./nxtdb"
 )
 
 func main2() {

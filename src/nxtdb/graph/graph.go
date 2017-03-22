@@ -8,39 +8,51 @@ type NoSuchVertexError struct {
 	message string
 }
 
-func NewDuplicateVertexError(message string) *DuplicateVertexError {
-	return &DuplicateVertexError {
+func NewDuplicateVertexError(message string) DuplicateVertexError {
+	return DuplicateVertexError {
 		message:message,
 	}
 }
 
-func NewNoSuchVertex(message string) *NoSuchVertexError {
-	return &NoSuchVertexError{
+func NewNoSuchVertex(message string) NoSuchVertexError {
+	return NoSuchVertexError{
 		message:message,
 	}
 }
 
 //Iterator for the vertex get operations
 type VertexIterator interface {
-	Next() *Vertex
+	Next() Vertex
 	HasNext() bool
 	Close()
 }
 
+//Graph interface
 type Graph interface {
 
-	//Management
+	//Graph Store Management APIs
+
+	//Open the underlying graph store
 	Open()
+
+	//Close. Should be called before exiting the program
 	Close()
 
-	//Indexing
-	CreateIndex(label string, propertyKey string)
+	//Schema Management APIs
+	//Add a new label
+	AddLabel(label string) Label
+
+	//Get the label
+	GetLabel(label string) Label
+
+	//Renames an existing label
+	//RenameLabel(label Label, newName string)
 
 	//Create
-	Add(label string, properties...VertexProperty) string
+	Add(label Label, properties...Property) string
 	AddProperty(id string, key string, value []byte)
 	AddProperties(id string, properties map[string][]byte)
-	AddEdge(from string, to string, label string)
+	AddEdge(from string, to string, label Label)
 
 	//Remove
 	RemoveVertex(id string)
@@ -49,7 +61,7 @@ type Graph interface {
 
 	//Read operations
 	GetVertex(id string) Vertex
-	GetVerticesByLabel(vertexLabel string) *VertexIterator
-	GetVertices(id string, edgeLabel string, outgoing bool) *VertexIterator
-	CountVertices(vertexLabel string) uint64
+	GetVerticesByLabel(vertexLabel Label) VertexIterator
+	GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator
+
 }

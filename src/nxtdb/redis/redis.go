@@ -3,10 +3,10 @@ package redis
 import (
 	"strconv"
 	"bufio"
-	nxtdb  "../"
 	"net"
 	"log"
 	"io"
+	"nxtdb"
 )
 
 type RedisCommandParser struct {

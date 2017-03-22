@@ -1,7 +1,6 @@
 package rocksdb
 
 import (
-	//"log"
 	"bytes"
 )
 
@@ -10,7 +9,6 @@ type PropMergeOp struct {
 }
 
 func (m PropMergeOp) FullMerge(key []byte, existingValue []byte, operands [][]byte) ([]byte, bool) {
-	//log.Println("\t\t-->FullMerge", string(key))
 	buf := new(bytes.Buffer)
 	buf.Write(existingValue)
 
@@ -23,7 +21,6 @@ func (m PropMergeOp) FullMerge(key []byte, existingValue []byte, operands [][]by
 }
 
 func (m PropMergeOp) PartialMerge(key, leftOperand, rightOperand []byte) ([]byte, bool) {
-	//log.Println("\t\t-->PartialMerge", string(key), string(leftOperand), string(rightOperand))
 	buf := new(bytes.Buffer)
 	buf.Write(leftOperand)
 	buf.Write(rightOperand)

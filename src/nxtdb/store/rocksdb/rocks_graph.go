@@ -1,20 +1,21 @@
 package rocksdb
 
 import (
-	. "../graph"
-	grocks "../../github.com/v1r3n/gorocksdb"
-	"../../github.com/google/uuid"
+	grocks "github.com/v1r3n/gorocksdb"
+	"github.com/google/uuid"
 	"log"
 	"bytes"
 	"fmt"
 	"encoding/binary"
+	"nxtdb/graph"
 )
 
 type RocksDBGraph struct {
 	dbPath  string
 	db      *grocks.DB
 	cfhVtx  *grocks.ColumnFamilyHandle
-	cfLabel *grocks.ColumnFamilyHandle
+	cfhIndx *grocks.ColumnFamilyHandle
+	cfhEdge *grocks.ColumnFamilyHandle
 }
 
 func (graphdb *RocksDBGraph) Open() {
@@ -23,8 +24,8 @@ func (graphdb *RocksDBGraph) Open() {
 	options.SetCreateIfMissingColumnFamilies(true)
 	options.SetMergeOperator(PropMergeOp{})
 	db, cfh, err := grocks.OpenDbColumnFamilies(options, graphdb.dbPath,
-		[]string{"default", "vertex","edge","index","labels"},
-		[]*grocks.Options{options, options, options, options, options},
+		[]string{"default", "vertex","edge","index"},
+		[]*grocks.Options{options, options, options, options},
 	)
 	if err != nil {
 		log.Fatal("Cannot open the database", err)
@@ -33,22 +34,48 @@ func (graphdb *RocksDBGraph) Open() {
 
 	graphdb.db = db
 	graphdb.cfhVtx = cfh[1]
-	graphdb.cfLabel = cfh[4]
+	graphdb.cfhEdge = cfh[2]
+	graphdb.cfhIndx = cfh[3]
 
 }
 
 func (db *RocksDBGraph) Close() {
 	db.cfhVtx.Destroy()
+	db.cfhEdge.Destroy()
+	db.cfhIndx.Destroy()
 	db.db.Close()
 }
 
-/*
- |key|cell|
- |vertex_id|properties
- |vertex_id_out_label|outgoing edges with label|
- |vertex_id_in_label|incoming edges with label|
- */
-func (db *RocksDBGraph) Add(label string, properties ...VertexProperty) string {
+func (db RocksDBGraph) AddLabel(label string) graph.Label {
+	opts := grocks.NewDefaultReadOptions()
+	existing, err := db.db.Get(opts, []byte(label))
+	var data []byte
+	if err != nil || existing == nil {
+		data = []byte(uuid.New().String())
+		db.db.Put(grocks.NewDefaultWriteOptions(), []byte(label), data)
+	} else {
+		data = existing.Data()
+	}
+
+	graphLabel := GraphLabel {
+		id : string(data),
+		label: label,
+	}
+	return graphLabel
+}
+func (db RocksDBGraph) GetLabel(label string) graph.Label {
+	opts := grocks.NewDefaultReadOptions()
+	existing, err := db.db.Get(opts, []byte(label))
+	if err != nil || existing == nil {
+		return nil
+	}
+	graphLabel := GraphLabel {
+		id : string(existing.Data()),
+		label: label,
+	}
+	return graphLabel
+}
+func (db *RocksDBGraph) Add(label graph.Label, properties ...graph.Property) string {
 	id := uuid.New().String()
 	vtx := GraphVertex{
 		id : []byte(id),
@@ -59,20 +86,15 @@ func (db *RocksDBGraph) Add(label string, properties ...VertexProperty) string {
 		vtx.properties[prop.Key()] = prop.Value()
 	}
 	opts := grocks.NewDefaultWriteOptions()
-	opts.SetSync(true)
 	bytes, err := encode(&vtx)
 	if err != nil {
 		fmt.Println("Error converting to bytes", err.Error())
 	}
 	db.db.PutCF(opts, db.cfhVtx, []byte(id), bytes)
-	lerr := db.db.MergeCF(opts, db.cfLabel, []byte(label), []byte(id))
-	if lerr != nil {
-		log.Println("Error writing to labels", lerr.Error())
-	}
 	return id
 }
 
-func (db *RocksDBGraph) GetVertex(id string) Vertex {
+func (db *RocksDBGraph) GetVertex(id string) graph.Vertex {
 	opts := grocks.NewDefaultReadOptions()
 	data, err := db.db.GetCF(opts, db.cfhVtx, []byte(id))
 	if err != nil {
@@ -81,20 +103,96 @@ func (db *RocksDBGraph) GetVertex(id string) Vertex {
 	}
 	bytes := make([]byte, data.Size())
 	copy(bytes, data.Data())
-	vtx := decode(&bytes)
+	vtx := decode(&bytes, db)
 	return vtx
 }
 
-func (db RocksDBGraph) GetVerticesByLabel(vertexLabel string) *VertexIterator {
+func (db RocksDBGraph) AddEdge(from string, to string, label graph.Label) {
+	buf := new(bytes.Buffer)
+	buf.WriteString(from)
+	buf.WriteString(label.Id())
+	buf.WriteByte(0)
+	buf.WriteByte(1)
+	buf.WriteString(to)
 
-	options := grocks.NewDefaultReadOptions()
-	iterator := db.db.NewIteratorCF(options, db.cfLabel)
-	iterator.Seek([]byte(vertexLabel))
-	return nil
+	buf2 := new(bytes.Buffer)
+	buf2.WriteString(to)
+	buf2.WriteString(label.Id())
+	buf2.WriteByte(0)
+	buf2.WriteByte(0)
+	buf2.WriteString(from)
+
+	batch := grocks.NewWriteBatch()
+	batch.PutCF(db.cfhEdge, buf.Bytes(), []byte(to))
+	batch.PutCF(db.cfhEdge, buf2.Bytes(), []byte(from))
+
+	opts := grocks.NewDefaultWriteOptions()
+	db.db.Write(opts, batch)
 }
 
-func (db RocksDBGraph) CreateIndex(label string, propertyKey string) {
+type GraphVertexIterator struct {
+	prefix []byte
+	iterator *grocks.Iterator
+	db *RocksDBGraph
+}
 
+func (it *GraphVertexIterator) open() {
+	it.iterator.Seek(it.prefix)
+}
+func (it *GraphVertexIterator) Next() graph.Vertex {
+	if it.iterator.ValidForPrefix(it.prefix) {
+		id := string(it.iterator.Value().Data())
+		it.iterator.Next()
+		return it.db.GetVertex(id)
+	}
+	return nil
+}
+func (it *GraphVertexIterator) HasNext() bool {
+	return it.iterator.ValidForPrefix(it.prefix)
+}
+func (it *GraphVertexIterator) Close() {
+	it.iterator.Close()
+}
+
+func (db RocksDBGraph) GetVertices(id string, edgeLabel graph.Label, outgoing bool) graph.VertexIterator {
+	buf := new(bytes.Buffer)
+	buf.WriteString(id)
+	buf.WriteString(edgeLabel.Id())
+	buf.WriteByte(0)
+	if outgoing {
+		buf.WriteByte(1)
+	} else {
+		buf.WriteByte(0)
+	}
+	opts := grocks.NewDefaultReadOptions()
+	iterator := db.db.NewIteratorCF(opts, db.cfhEdge)
+	prefix := buf.Bytes()
+
+	vi := GraphVertexIterator{
+		iterator: iterator,
+		prefix: prefix,
+		db: &db,
+	}
+	vi.open()
+
+	return &vi
+}
+
+func (db RocksDBGraph) GetVerticesByLabel(vertexLabel graph.Label) graph.VertexIterator {
+
+	/*
+	options := grocks.NewDefaultReadOptions()
+	data, err := db.db.GetCF(options, db.cfLabel, []byte(vertexLabel))
+	if err != nil {
+		log.Println("error when trying to get label data", err.Error())
+		return nil
+	}
+	iterator := &GraphVertexIterator{
+		data: data,
+	}
+	return iterator
+	*/
+	return nil
 }
 
 func (db RocksDBGraph) AddProperty(id string, key string, value []byte) {
@@ -115,9 +213,6 @@ func (db RocksDBGraph) AddProperties(id string, properties map[string][]byte) {
 
 }
 
-func (db RocksDBGraph) AddEdge(from string, to string, label string) {
-}
-
 func (db RocksDBGraph) RemoveVertex(id string) {
 
 }
@@ -128,14 +223,7 @@ func (db RocksDBGraph) RemoveEdge(from string, to string, label string) {
 
 }
 
-func (db RocksDBGraph) GetVertices(id string, edgeLabel string, outgoing bool) *VertexIterator {
-	return nil
-}
-func (db RocksDBGraph) CountVertices(vertexLabel string) uint64 {
-	return 0
-}
-
-func NewGraph(path string) Graph {
+func NewGraph(path string) graph.Graph {
 	return &RocksDBGraph{
 		dbPath:path,
 	}
@@ -144,13 +232,11 @@ func NewGraph(path string) Graph {
 //private functions
 func encode(vtx *GraphVertex) ([]byte, error) {
 	buf := new(bytes.Buffer)
-	labelBytes := []byte(vtx.label)
+	labelBytes := []byte(vtx.label.Id())
 	labelSize := uint16(len(labelBytes))
 
 	binary.Write(buf, binary.LittleEndian, labelSize)
 	binary.Write(buf, binary.LittleEndian, labelBytes)
-	//propertySize := uint16(len(vtx.properties))
-	//binary.Write(buf, binary.LittleEndian, propertySize)
 
 	for k, v := range vtx.properties {
 		keyBytes := []byte(k)
@@ -172,7 +258,7 @@ func encodeKV(key *string, value *[]byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func decode(data *[]byte) *GraphVertex {
+func decode(data *[]byte, db *RocksDBGraph) *GraphVertex {
 	vtx := GraphVertex{
 		properties:make(map[string][]byte),
 	}
@@ -185,7 +271,7 @@ func decode(data *[]byte) *GraphVertex {
 
 	bytes := make([]byte, len)
 	binary.Read(buf, binary.LittleEndian, bytes)
-	vtx.label = string(bytes)
+	vtx.label = db.GetLabel(string(bytes))
 
 	for ; ; {
 		var size uint16
