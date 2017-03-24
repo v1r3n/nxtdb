@@ -19,9 +19,9 @@ type GraphProperty struct {
 }
 
 type GraphEdge struct {
-	label GraphLabel
-	from  GraphVertex
-	to    GraphVertex
+	label Label
+	from  string
+	to    string
 }
 
 func (label GraphLabel) Name() string {
@@ -41,7 +41,13 @@ func (vtx GraphVertex) Property(name string) []byte {
 }
 
 func (vtx GraphVertex) Properties() []Property {
-	return nil
+	props := make([]Property, len(vtx.properties))
+	i := 0
+	for k, v := range vtx.properties {
+		props[i] = GraphProperty{k, v}
+		i++
+	}
+	return props
 }
 
 func (vtx GraphVertex) Label() Label {
@@ -62,6 +68,18 @@ func (prop GraphProperty) Key() string {
 
 func (prop GraphProperty) Value() []byte {
 	return prop.value
+}
+
+func (edge *GraphEdge) Label() Label {
+	return edge.label
+}
+
+func (edge *GraphEdge) From() string {
+	return edge.from
+}
+
+func (edge *GraphEdge) To() string {
+	return edge.to
 }
 
 func NewProperty(key string, value []byte) GraphProperty {

@@ -17,8 +17,8 @@ type Vertex interface {
 //Directional Edge between two vertices
 type Edge interface {
 	Label() Label
-	From() Vertex
-	To() Vertex
+	From() string
+	To() string
 }
 
 //Key, Value

@@ -21,4 +21,6 @@ NXTDB is a graph database implementation using RocksDB as storage engine
 9. Database Management and Options
 10. Performance Tests on a single node
 11. Error Handling
-
+12. ID supplier
+13. Bulk loading
+14. 

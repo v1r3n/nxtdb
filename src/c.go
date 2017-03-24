@@ -30,20 +30,13 @@ func main() {
 		count = c
 	}
 	log.Println("loop count", count)
-	gdb := rocksgraph.NewGraph("./graph.db")
-	gdb.Open()
-	var writeTime int64 = 0
-	var readTime int64 = 0
 
-	gdb.AddLabel("countryx123")
-	countryLabel := gdb.AddLabel("country")
-	testLabel := gdb.AddLabel("test")
-	belongsTo := gdb.AddLabel("belongsTo")
+	g := rocksgraph.OpenGraphDb("./graph.db")
+	gdb := g.Tx()
 
-	country := gdb.Add(countryLabel, rocksgraph.NewProperty("country", []byte(randomdata.Country(randomdata.FullCountry))))
-
+	var country string
 	for i := 0; i < count; i++ {
-
+		country = "." + randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
 			rocksgraph.NewProperty("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
 			rocksgraph.NewProperty("last", []byte(randomdata.LastName())),
@@ -52,43 +45,42 @@ func main() {
 			rocksgraph.NewProperty("currency", []byte(randomdata.Currency())),
 			rocksgraph.NewProperty("macaddress", []byte(randomdata.MacAddress())),
 			rocksgraph.NewProperty("uid", []byte(uuid.New().String())),
+			rocksgraph.NewProperty("country", []byte(country)),
 		}
-
-
-		start := time.Now()
-		id := gdb.Add(testLabel, properties...)
+		vtxLabel := gdb.AddLabel(country)
+		id := gdb.Add(vtxLabel, properties...)
+		country = string(country)
 		gdb.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
-		diff := time.Now().Sub(start)
-		writeTime += diff.Nanoseconds()
-
-		gdb.AddEdge(country, id, belongsTo)
-		start1 := time.Now()
-		gdb.GetVertex(id)
-		diff2 := time.Now().Sub(start1)
-		readTime += diff2.Nanoseconds()
-
-
 	}
+	start := time.Now()
+	gdb.Commit()
+	end := time.Now()
+	log.Println("\n\nTx Commit Time", end.Sub(start).Nanoseconds())
+
+	foundLabel2 := gdb.GetLabel(country)
+	log.Println("found again label", foundLabel2)
 
 	start2 := time.Now()
-	iterator := gdb.GetVertices(country, belongsTo, true)
+	iterator := gdb.GetVerticesByLabel(gdb.GetLabel(country))
+	end2 := time.Now()
+	log.Println("\n\nGet Iterator time", end2.Sub(start2).Nanoseconds())
+
 	start3 := time.Now()
-	for {
-		if !iterator.HasNext() {
-			break;
+	log.Println("START")
+	if iterator != nil {
+		for {
+			if !iterator.HasNext() {
+				break;
+			}
+			vtx := iterator.Next()
+			log.Println(string(vtx.Property("country")), vtx.Id())
 		}
-		vtx := iterator.Next()
-		log.Println("\t-->next,", string(vtx.Property("email")))
 	}
-	start4 := time.Now()
+	log.Println("END")
+	end3 := time.Now()
+	log.Println("\n\nEdge iteration time", end3.Sub(start3).Nanoseconds())
 
-	log.Println("\n\nEdge Lookup time", start3.Sub(start2).Nanoseconds())
-	log.Println("\n\nEdge iteration time", start4.Sub(start3).Nanoseconds())
-	log.Println("graph write time", writeTime)
-	log.Println("graph read time", readTime)
-	log.Println("graph time", writeTime + readTime)
-
-	defer gdb.Close()
+	defer g.Close()
 }
 
 func main1() {
