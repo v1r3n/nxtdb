@@ -1,8 +1,4 @@
-/**
- Entry point for the nxtdb
- */
-
-package nxtdb
+package server
 
 import (
 	"bufio"

@@ -5,6 +5,7 @@ import (
 	"sync"
 	"os"
 	"log"
+	. "nxtdb/server"
 )
 
 var mutex = &sync.RWMutex{}

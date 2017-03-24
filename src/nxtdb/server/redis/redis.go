@@ -6,7 +6,7 @@ import (
 	"net"
 	"log"
 	"io"
-	"nxtdb"
+	server "nxtdb/server"
 )
 
 type RedisCommandParser struct {
@@ -17,15 +17,15 @@ type RedisServer struct {
 
 }
 
-func NewRedisCmdParser() nxtdb.CommandParser {
+func NewRedisCmdParser() server.CommandParser {
 	return RedisCommandParser{}
 }
 
-func NewServer() nxtdb.Server {
+func NewServer() server.Server {
 	return RedisServer{}
 }
 
-func (r RedisServer) Start(host string, port int, store *nxtdb.Store) {
+func (r RedisServer) Start(host string, port int, store *server.Store) {
 	listener, err := net.Listen("tcp", host + ":" + strconv.Itoa(port))
 	if nil != err {
 		log.Fatalln("Listen Error:", err.Error())
@@ -45,12 +45,12 @@ func (r RedisServer) Stop() {
 
 }
 
-func (r RedisCommandParser) ParseCommand(reader *bufio.Reader) (nxtdb.Command, error) {
+func (r RedisCommandParser) ParseCommand(reader *bufio.Reader) (server.Command, error) {
 	return parseCommand(reader)
 }
 
-func parseCommand(reader *bufio.Reader) (nxtdb.Command, error) {
-	cmd := nxtdb.Command{}
+func parseCommand(reader *bufio.Reader) (server.Command, error) {
+	cmd := server.Command{}
 	state := 0	//0 -> read the argument count, 1-> argument size, 2-> argument
 	argc := 0
 	size := 0
@@ -108,7 +108,7 @@ func parseCommand(reader *bufio.Reader) (nxtdb.Command, error) {
 	return cmd, nil
 }
 
-func handle(conn net.Conn, store *nxtdb.Store) {
+func handle(conn net.Conn, store *server.Store) {
 	defer conn.Close()
 
 	cmdParser := NewRedisCmdParser()
