@@ -1,11 +1,5 @@
 package main
 
-/*
-#cgo LDFLAGS: -L/usr/local/Cellar/rocksdb/5.1.4/lib -lrocksdb
-#cgo CFLAGS: -I/usr/local/Cellar/rocksdb/5.1.4/include
-#include "rocksdb/c.h"
-#include <stdlib.h>
-*/
 import (
 	"fmt"
 	grocks "github.com/v1r3n/gorocksdb"

@@ -1,5 +1,11 @@
 package rocksdb
 
+/*
+#cgo LDFLAGS: -L/usr/local/Cellar/rocksdb/5.1.4/lib -lrocksdb
+#cgo CFLAGS: -I/usr/local/Cellar/rocksdb/5.1.4/include
+#include "rocksdb/c.h"
+#include <stdlib.h>
+*/
 import (
 	grocks "github.com/v1r3n/gorocksdb"
 	"log"
@@ -74,6 +80,12 @@ func (db *RocksDBGraph) Tx() Transaction {
 	return db.tx
 }
 
+func (db *RocksDBGraph) NewProperty(key string, value []byte) Property {
+	return GraphProperty{
+		key : key,
+		value : value,
+	}
+}
 
 
 

@@ -81,10 +81,3 @@ func (edge *GraphEdge) From() string {
 func (edge *GraphEdge) To() string {
 	return edge.to
 }
-
-func NewProperty(key string, value []byte) GraphProperty {
-	return GraphProperty{
-		key : key,
-		value : value,
-	}
-}

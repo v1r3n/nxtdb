@@ -13,4 +13,7 @@ type Graph interface {
 
 	//Transaction management
 	Tx() Transaction
+
+	//Misc
+	NewProperty(key string, value []byte) Property
 }
