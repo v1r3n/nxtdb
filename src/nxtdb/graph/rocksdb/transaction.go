@@ -11,10 +11,12 @@ import (
 
 type GraphTransaction struct {
 	vertices        map[string]Vertex
-	deletedVertices map[string]Vertex
+	deletedVertices []string
+	deletedEdges    []GraphEdge
 	vtxProperties   map[string]map[string][]byte
 	edges           map[string]GraphEdge
 	labels          map[string]Label
+	labelsById      map[string]string
 	db              *grocks.DB
 	cfhVtx          *grocks.ColumnFamilyHandle
 	cfhIndx         *grocks.ColumnFamilyHandle
@@ -28,16 +30,16 @@ func NewGraphTransaction(db *grocks.DB, cfhVtx, cfhIndx, cfhEdge *grocks.ColumnF
 		cfhIndx: cfhIndx,
 		cfhEdge: cfhEdge,
 		vertices : make(map[string]Vertex),
-		deletedVertices : make(map[string]Vertex),
+		deletedVertices : make([]string, 0),
+		deletedEdges : make([]GraphEdge, 0),
 		edges : make(map[string]GraphEdge),
 		labels : make(map[string]Label),
+		labelsById: make(map[string]string),
 		vtxProperties: make(map[string]map[string][]byte),
 	}
 	return &tx
 }
 
-
-//tbd
 func (tx *GraphTransaction) Commit() error {
 
 	opts := grocks.NewDefaultWriteOptions()
@@ -59,7 +61,8 @@ func (tx *GraphTransaction) Rollback() {
 }
 func (tx *GraphTransaction) clean() {
 	tx.vertices = make(map[string]Vertex)
-	tx.deletedVertices = make(map[string]Vertex)
+	tx.deletedVertices = make([]string, 0)
+	tx.deletedEdges = make([]GraphEdge, 0)
 	tx.edges = make(map[string]GraphEdge)
 	tx.labels = make(map[string]Label)
 	tx.vtxProperties = make(map[string]map[string][]byte)
@@ -73,6 +76,7 @@ func (db *GraphTransaction) AddLabel(label string) Label {
 			label: label,
 		}
 		db.labels[label] = graphLabel
+		db.labelsById[graphLabel.id] = label
 		return graphLabel
 	}
 	return existing
@@ -95,7 +99,28 @@ func (db *GraphTransaction) GetLabel(label string) Label {
 			label: label,
 		}
 	}
+	db.labelsById[existing.Id()] = label
 	return existing
+}
+
+func (db *GraphTransaction) getLabelById(id string) Label {
+	existing := db.labelsById[id]
+	if len(existing) == 0 {
+		opts := grocks.NewDefaultReadOptions()
+		id, err := db.db.Get(opts, []byte(id))
+		if err != nil {
+			log.Println("error in get label by id", err.Error())
+			return nil
+		}
+		if err != nil || id == nil || id.Size() == 0 {
+			return nil
+		}
+		existing = string(id.Data())
+	}
+	db.labelsById[id] = existing
+	label := GraphLabel{existing, id}
+	db.labels[existing] = label
+	return label
 }
 
 func (tx *GraphTransaction) Add(label Label, properties ...Property) string {
@@ -134,6 +159,12 @@ func (tx *GraphTransaction) AddEdge(from string, to string, label Label) {
 	key := from + to + label.Id()
 	edge := GraphEdge{label, from, to}
 	tx.edges[key] = edge
+}
+
+func (tx *GraphTransaction) RemoveEdge(from string, to string, label Label) {
+	key := from + to + label.Id()
+	delete(tx.edges, key)
+	tx.deletedEdges = append(tx.deletedEdges, GraphEdge{label, from, to})
 }
 
 func (db *GraphTransaction) GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator {
@@ -180,14 +211,13 @@ func (tx *GraphTransaction) AddProperties(id string, properties...Property) {
 	}
 }
 
-func (tx *GraphTransaction) RemoveVertex(id string) {
-
-}
 func (tx *GraphTransaction) RemoveProperty(id string, key string) {
-
+	tx.AddProperty(id, key, nil)
 }
-func (tx *GraphTransaction) RemoveEdge(from string, to string, label string) {
 
+func (tx *GraphTransaction) RemoveVertex(id string) {
+	delete(tx.vertices, id)
+	tx.deletedVertices = append(tx.deletedVertices, id)
 }
 
 func encode(vertex *Vertex) ([]byte, error) {
@@ -236,7 +266,7 @@ func decode(data *[]byte, id string, tx *GraphTransaction) *GraphVertex {
 
 	bytes := make([]byte, len)
 	binary.Read(buf, binary.LittleEndian, bytes)
-	vtx.label = tx.GetLabel(string(bytes))
+	vtx.label = tx.getLabelById(string(bytes))
 
 	for ; ; {
 		var size uint16
@@ -262,11 +292,15 @@ func (tx *GraphTransaction) flushAddedVertices(batch *grocks.WriteBatch) error {
 		}
 		batch.PutCF(tx.cfhVtx, []byte(id), bytes)
 	}
+	for _, id := range tx.deletedVertices {
+		batch.DeleteCF(tx.cfhVtx, []byte(id))
+	}
 	return nil
 }
 func (db *GraphTransaction) flushAddLabels(batch *grocks.WriteBatch) {
 	for name, label := range db.labels {
 		batch.Put([]byte(name), []byte(label.Id()))
+		batch.Put([]byte(label.Id()), []byte(name))
 	}
 
 }
@@ -294,7 +328,32 @@ func (tx *GraphTransaction) flushEdges(batch *grocks.WriteBatch) {
 		batch.PutCF(tx.cfhEdge, buf.Bytes(), []byte(to))
 		batch.PutCF(tx.cfhEdge, buf2.Bytes(), []byte(from))
 	}
+
+	for _, edge := range tx.deletedEdges {
+
+		from := edge.From()
+		to := edge.To()
+		label := edge.Label()
+
+		buf := new(bytes.Buffer)
+		buf.WriteString(from)
+		buf.WriteString(label.Id())
+		buf.WriteByte(0)
+		buf.WriteByte(1)
+		buf.WriteString(to)
+
+		buf2 := new(bytes.Buffer)
+		buf2.WriteString(to)
+		buf2.WriteString(label.Id())
+		buf2.WriteByte(0)
+		buf2.WriteByte(0)
+		buf2.WriteString(from)
+
+		batch.DeleteCF(tx.cfhEdge, buf.Bytes())
+		batch.DeleteCF(tx.cfhEdge, buf2.Bytes())
+	}
 }
+
 func (tx *GraphTransaction) flushProperties(batch *grocks.WriteBatch) error {
 	for id, props := range tx.vtxProperties {
 		for k, v := range props {

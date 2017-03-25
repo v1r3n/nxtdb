@@ -8,24 +8,29 @@ import (
 	rg "nxtdb/graph/rocksdb"
 	"testing"
 	"strings"
+	"strconv"
 )
 
+var g = rg.OpenGraphDb("./graph.db")
+
+type TB interface {
+	Error(args ...interface{})
+	FailNow()
+}
+
 func BenchmarkGraphOps(b *testing.B) {
-	//testGraphOps(t, 1000)
+	testGraphOps(b, 100)
 }
 
 func TestGraphOps(t *testing.T) {
-	testGraphOps(t, 10)
+	testGraphOps(t, 20)
 }
 
-func testGraphOps(t *testing.T, count int) {
-
-	g := rg.OpenGraphDb("./graph.db")
-	defer g.Close()
+func testGraphOps(t TB, count int) {
 
 	tx := g.Tx()
 	countries := make([]string, 0)
-
+	log.Println("count", strconv.Itoa(count))
 	for i := 0; i < count; i++ {
 		country := randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
@@ -43,30 +48,28 @@ func testGraphOps(t *testing.T, count int) {
 		foundLabel := tx.GetLabel(country)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), vtxLabel.Name()) {
 			t.Error("Labels do not match", vtxLabel.Name(), "not same as", foundLabel.Name())
+			t.FailNow()
 		}
 
 		id := tx.Add(vtxLabel, properties...)
 		if len(id) == 0 {
 			t.Error("ID returned for Add... is not valid/empty string")
+			t.FailNow()
 		}
-		log.Println("Adding country", country)
 		countries = append(countries, country)
 		tx.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
 	}
 	tx.Commit()
-	for indx, country := range countries {
-		log.Println("\t\tTesting for country22", country, "indx", indx)
-	}
-	for indx, country := range countries {
+	for _, country := range countries {
 		foundLabel := tx.GetLabel(country)
-		log.Println("Testing for country", country, "indx", indx)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), country) {
 			t.Error("Labels do not match", country, "not same as", foundLabel.Name())
+			t.FailNow()
 		}
 
 		iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 		if iterator == nil {
-			t.Fail()
+			t.FailNow()
 		}
 		for {
 			if !iterator.HasNext() {
@@ -75,10 +78,16 @@ func testGraphOps(t *testing.T, count int) {
 			vtx := iterator.Next()
 			if vtx == nil {
 				t.Error("nil vertex in iterator")
+				t.FailNow()
 			}
-			log.Println(string(vtx.Property("country")), vtx.Id(), vtx.Label())
+			if vtx.Label() == nil {
+				t.Error("Label is missing on the vertex, expected", string(vtx.Property("country")))
+				t.FailNow()
+			}
+			//log.Println(string(vtx.Property("country")), vtx.Id(), vtx.Label())
 			if !strings.EqualFold(country, vtx.Label().Name()) {
-				t.Error("received vertex that does not belong to the label")
+				t.Error("received vertex that does not belong to the label", country, vtx.Label().Name())
+				t.FailNow()
 			}
 
 		}

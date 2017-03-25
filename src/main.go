@@ -6,7 +6,7 @@ import (
 	"github.com/google/uuid"
 	randomdata "github.com/Pallinder/go-randomdata"
 	"strconv"
-	rocksgraph "nxtdb/store/rocksdb"
+	rocksgraph "nxtdb/graph/rocksdb"
 	"nxtdb/graph"
 	"time"
 	"log"
@@ -28,36 +28,37 @@ func main() {
 	log.Println("loop count", count)
 
 	g := rocksgraph.OpenGraphDb("./graph.db")
-	gdb := g.Tx()
+	tx := g.Tx()
 
 	var country string
 	for i := 0; i < count; i++ {
 		country = "." + randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
-			rocksgraph.NewProperty("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
-			rocksgraph.NewProperty("last", []byte(randomdata.LastName())),
-			rocksgraph.NewProperty("address", []byte(randomdata.Address())),
-			rocksgraph.NewProperty("email", []byte(randomdata.Email())),
-			rocksgraph.NewProperty("currency", []byte(randomdata.Currency())),
-			rocksgraph.NewProperty("macaddress", []byte(randomdata.MacAddress())),
-			rocksgraph.NewProperty("uid", []byte(uuid.New().String())),
-			rocksgraph.NewProperty("country", []byte(country)),
+			g.NewProperty("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
+			g.NewProperty("last", []byte(randomdata.LastName())),
+			g.NewProperty("address", []byte(randomdata.Address())),
+			g.NewProperty("email", []byte(randomdata.Email())),
+			g.NewProperty("currency", []byte(randomdata.Currency())),
+			g.NewProperty("macaddress", []byte(randomdata.MacAddress())),
+			g.NewProperty("uid", []byte(uuid.New().String())),
+			g.NewProperty("country", []byte(country)),
 		}
-		vtxLabel := gdb.AddLabel(country)
-		id := gdb.Add(vtxLabel, properties...)
+		vtxLabel := tx.AddLabel(country)
+		id := tx.Add(vtxLabel, properties...)
 		country = string(country)
-		gdb.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
+		tx.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
 	}
 	start := time.Now()
-	gdb.Commit()
+	tx.Commit()
+
 	end := time.Now()
 	log.Println("\n\nTx Commit Time", end.Sub(start).Nanoseconds())
 
-	foundLabel2 := gdb.GetLabel(country)
+	foundLabel2 := tx.GetLabel(country)
 	log.Println("found again label", foundLabel2)
 
 	start2 := time.Now()
-	iterator := gdb.GetVerticesByLabel(gdb.GetLabel(country))
+	iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 	end2 := time.Now()
 	log.Println("\n\nGet Iterator time", end2.Sub(start2).Nanoseconds())
 

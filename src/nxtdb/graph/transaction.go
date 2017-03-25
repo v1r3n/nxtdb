@@ -26,7 +26,7 @@ type Transaction interface {
 	//Remove
 	RemoveVertex(id string)
 	RemoveProperty(id string, key string)
-	RemoveEdge(from string, to string, label string)
+	RemoveEdge(from string, to string, label Label)
 
 	//Read operations
 	GetVertex(id string) Vertex
