@@ -26,3 +26,10 @@ type Property interface {
 	Key() string
 	Value() []byte
 }
+
+type Config struct {
+	//use supplied vertex ids
+	//batch loading
+	//sync
+	//quorum
+}

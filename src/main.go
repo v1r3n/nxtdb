@@ -12,11 +12,29 @@ import (
 	"log"
 	"os"
 	"nxtdb/server/redis"
-	"nxtdb"
+	"nxtdb/server/graph"
 )
 
 
+
 func main() {
+	server := redis.NewServer()
+	store := graphstore.New("./graph2.db")
+	server.Start("", 22122, &store)
+}
+func main3() {
+	var g = rocksgraph.OpenGraphDb("./graph.db")
+
+	for i :=0; i < 10; i++ {
+		go main0()
+	}
+	select {
+
+	}
+	defer g.Close()
+}
+func main0() {
+	var g = rocksgraph.OpenGraphDb("./graph.db")
 	count := 1
 	if len(os.Args) > 1 {
 		c, errx := strconv.Atoi(os.Args[1])
@@ -27,7 +45,7 @@ func main() {
 	}
 	log.Println("loop count", count)
 
-	g := rocksgraph.OpenGraphDb("./graph.db")
+
 	tx := g.Tx()
 
 	var country string
@@ -52,38 +70,28 @@ func main() {
 	tx.Commit()
 
 	end := time.Now()
-	log.Println("\n\nTx Commit Time", end.Sub(start).Nanoseconds())
+	log.Println("Tx Commit:\t", end.Sub(start).Nanoseconds())
 
-	foundLabel2 := tx.GetLabel(country)
-	log.Println("found again label", foundLabel2)
+	//foundLabel2 := tx.GetLabel(country)
+	//log.Println("found again label", foundLabel2)
 
 	start2 := time.Now()
 	iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 	end2 := time.Now()
-	log.Println("\n\nGet Iterator time", end2.Sub(start2).Nanoseconds())
+	log.Println("Get Iter :\t", end2.Sub(start2).Nanoseconds())
 
 	start3 := time.Now()
-	log.Println("START")
 	if iterator != nil {
 		for {
 			if !iterator.HasNext() {
 				break;
 			}
-			vtx := iterator.Next()
-			log.Println(string(vtx.Property("country")), vtx.Id())
+			iterator.Next()
+			//log.Println(string(vtx.Property("country")), vtx.Id())
 		}
 	}
-	log.Println("END")
 	end3 := time.Now()
-	log.Println("\n\nEdge iteration time", end3.Sub(start3).Nanoseconds())
-
-	defer g.Close()
-}
-
-func main2() {
-	server := redis.NewServer()
-	store := nxtdb.NewStore()
-	server.Start("", 22122, &store)
+	log.Println("Edge Iter:\t", end3.Sub(start3).Nanoseconds())
 }
 
 func main1() {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"io"
 	server "nxtdb/server"
+	"strings"
 )
 
 type RedisCommandParser struct {
@@ -69,8 +70,8 @@ func parseCommand(reader *bufio.Reader) (server.Command, error) {
 			argc = val
 			argc_read = 0
 			state++
-			if argc > 2 {
-				args = make([][]byte, argc - 2)
+			if argc > 1 {
+				args = make([][]byte, argc - 1)
 				cmd.Args = args
 			}
 			reader.ReadBytes('\n')
@@ -90,12 +91,10 @@ func parseCommand(reader *bufio.Reader) (server.Command, error) {
 				return cmd, err
 			}
 			if a == 0 {
-				cmd.Cmd = string(p[:n])
-			} else if a == 1 {
-				cmd.Key = string(p[:n])
+				cmd.Cmd = strings.ToUpper(string(p[:n]))
 			} else {
-				args[a-2] = make([]byte, n)
-				args[a-2] = p[:n]
+				args[a-1] = make([]byte, n)
+				args[a-1] = p[:n]
 			}
 			a++;
 			state = 1
@@ -116,7 +115,7 @@ func handle(conn net.Conn, store *server.Store) {
 	for {
 		cmd, err := cmdParser.ParseCommand(bufio.NewReader(conn))
 		if err == nil || err == io.EOF {
-			response, err := (*store).ExecuteCommand(cmd)
+			response, err := (*store).ExecuteCommand(&cmd)
 			resp := ""
 			if err != nil {
 				resp = "-" + err.Error() + "\r\n"

@@ -23,8 +23,8 @@ func NewStore() Store {
 	return store
 }
 
-func (store MemStore) ExecuteCommand(cmd Command) ([][]byte, error) {
-	bytes, err := execute(cmd, &store)
+func (store MemStore) ExecuteCommand(cmd *Command) ([][]byte, error) {
+	bytes, err := execute(*cmd, &store)
 	return bytes, err
 }
 
@@ -69,14 +69,14 @@ func execute(cmd Command, store *MemStore) ([][]byte, error) {
 			return nil, errors.New("Missing value for Set")
 		}
 		mutex.Lock()
-		store.set(cmd.Key, cmd.Args[0])
+		store.set(string(cmd.Args[0]), cmd.Args[1])
 		mutex.Unlock()
 		bytes := make([][]byte, 1)
 		bytes[0] = []byte("OK")
 		return bytes, nil
 	} else if cmd.Cmd == "get" {
 		mutex.RLock()
-		val := store.get(cmd.Key)
+		val := store.get(string(cmd.Args[0]))
 		mutex.RUnlock()
 		bytes := make([][]byte, 1)
 		bytes[0] = val
@@ -100,7 +100,7 @@ func execute(cmd Command, store *MemStore) ([][]byte, error) {
 			return nil, errors.New("hset key field value")
 		}
 		mutex.Lock()
-		store.hset(cmd.Key, string(cmd.Args[0]), cmd.Args[1])
+		store.hset(string(cmd.Args[0]), string(cmd.Args[1]), cmd.Args[2])
 		mutex.Unlock()
 		bytes := make([][]byte, 1)
 		bytes[0] = []byte("OK")
@@ -110,14 +110,14 @@ func execute(cmd Command, store *MemStore) ([][]byte, error) {
 			return nil, errors.New("hget key field")
 		}
 		mutex.RLock()
-		val := store.hget(cmd.Key, string(cmd.Args[0]))
+		val := store.hget(string(cmd.Args[0]), string(cmd.Args[1]))
 		mutex.RUnlock()
 		bytes := make([][]byte, 1)
 		bytes[0] = val
 		return bytes, nil
 	} else if cmd.Cmd == "hgetall" {
 		mutex.RLock()
-		val := store.hgetall(cmd.Key)
+		val := store.hgetall(string(cmd.Args[0]))
 		mutex.RUnlock()
 		return val, nil
 	} else if cmd.Cmd == "save" {

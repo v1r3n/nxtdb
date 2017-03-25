@@ -19,7 +19,13 @@ type TB interface {
 }
 
 func BenchmarkGraphOps(b *testing.B) {
-	testGraphOps(b, 100)
+	b.SetParallelism(32)
+	b.RunParallel(func (pb *testing.PB) {
+		for pb.Next() {
+			testGraphOps(b, 5000)
+		}
+	})
+
 }
 
 func TestGraphOps(t *testing.T) {

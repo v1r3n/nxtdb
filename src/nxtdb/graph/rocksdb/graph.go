@@ -21,7 +21,6 @@ type RocksDBGraph struct {
 	cfhIndx      *grocks.ColumnFamilyHandle
 	cfhEdge      *grocks.ColumnFamilyHandle
 	transactions map[string]*GraphTransaction
-	tx           *GraphTransaction
 	opened       bool
 }
 
@@ -74,10 +73,8 @@ func (db *RocksDBGraph) Close() {
 }
 
 func (db *RocksDBGraph) Tx() Transaction {
-	if (db.tx == nil) {
-		db.tx = NewGraphTransaction(db.db, db.cfhVtx, db.cfhIndx, db.cfhEdge)
-	}
-	return db.tx
+	tx := NewGraphTransaction(db.db, db.cfhVtx, db.cfhIndx, db.cfhEdge)
+	return tx
 }
 
 func (db *RocksDBGraph) NewProperty(key string, value []byte) Property {

@@ -6,12 +6,11 @@ import (
 
 type Command struct {
 	Cmd string
-	Key string
 	Args [][]byte
 }
 
 type Store interface {
-	ExecuteCommand(cmd Command) ([][]byte, error)
+	ExecuteCommand(cmd *Command) ([][]byte, error)
 }
 
 type CommandParser interface {

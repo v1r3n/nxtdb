@@ -59,6 +59,7 @@ func (tx *GraphTransaction) Commit() error {
 func (tx *GraphTransaction) Rollback() {
 	tx.clean()
 }
+
 func (tx *GraphTransaction) clean() {
 	tx.vertices = make(map[string]Vertex)
 	tx.deletedVertices = make([]string, 0)
