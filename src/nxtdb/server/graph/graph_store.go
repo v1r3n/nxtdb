@@ -51,6 +51,7 @@ func New(path string) Store {
 	store := GraphStore{path, &g, handlers}
 	store.handlers["ADD"] = add
 	store.handlers["GET"] = get
+	store.handlers["COMMAND"] = command
 	return store
 }
 
@@ -108,6 +109,9 @@ func get(cmd *Command, store *GraphStore) ([][]byte, error) {
 	return bytes, nil
 }
 
+func command(cmd *Command, store *GraphStore) ([][]byte, error) {
+	return ok("Hello"), nil
+}
 func (store *GraphStore) addLabel(label string) {
 	graph := store.graph
 	tx := (*graph).Tx()

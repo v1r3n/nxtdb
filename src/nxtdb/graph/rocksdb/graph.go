@@ -21,6 +21,7 @@ type RocksDBGraph struct {
 	cfhIndx      *grocks.ColumnFamilyHandle
 	cfhEdge      *grocks.ColumnFamilyHandle
 	transactions map[string]*GraphTransaction
+	indexMeta    []byte
 	opened       bool
 }
 
@@ -28,7 +29,7 @@ func OpenGraphDb(path string) Graph {
 
 	if sharedDB == nil {
 		sharedDB = &RocksDBGraph{
-			dbPath:path,
+			dbPath: path,
 		}
 		sharedDB.Open()
 	}
@@ -43,6 +44,17 @@ func (graphdb *RocksDBGraph) Open() {
 	}
 
 	options := grocks.NewDefaultOptions()
+
+	//https://www.percona.com/live/data-performance-conference-2016/sites/default/files/slides/Percona_RocksDB_v1.3.pdf
+	options.SetWriteBufferSize(512)
+	options.SetMaxWriteBufferNumber(16)
+	options.SetTargetFileSizeBase(256)
+	options.SetMaxBackgroundCompactions(48)
+	options.SetLevel0SlowdownWritesTrigger(48)
+	options.SetLevel0StopWritesTrigger(56)
+	options.SetUseDirectWrites(true)
+
+
 	options.SetCreateIfMissing(true)
 	options.SetCreateIfMissingColumnFamilies(true)
 	options.SetMergeOperator(PropMergeOp{})
@@ -60,6 +72,7 @@ func (graphdb *RocksDBGraph) Open() {
 	graphdb.cfhEdge = cfh[2]
 	graphdb.cfhIndx = cfh[3]
 	graphdb.transactions = make(map[string]*GraphTransaction)
+	graphdb.indexMeta = []byte(".IndexedProperties")
 	graphdb.opened = true
 
 	return;
@@ -79,10 +92,12 @@ func (db *RocksDBGraph) Tx() Transaction {
 
 func (db *RocksDBGraph) NewProperty(key string, value []byte) Property {
 	return GraphProperty{
-		key : key,
-		value : value,
+		key:   key,
+		value: value,
 	}
 }
 
-
-
+func (db *RocksDBGraph) IndexProperty(property string) {
+	opts := grocks.NewDefaultWriteOptions()
+	db.db.MergeCF(opts, db.cfhIndx, db.indexMeta, []byte(property))
+}

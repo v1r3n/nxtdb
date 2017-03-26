@@ -1,9 +1,10 @@
+/*
+ Interface for working with the graph database
+ */
 package graph
 
 //Graph interface
 type Graph interface {
-
-	//Graph Store Management APIs
 
 	//Open the underlying graph store
 	Open()
@@ -16,4 +17,7 @@ type Graph interface {
 
 	//Misc
 	NewProperty(key string, value []byte) Property
+
+	//Create an index for the vertex property
+	IndexProperty(property string)
 }

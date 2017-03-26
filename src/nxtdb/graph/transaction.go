@@ -6,16 +6,12 @@ type Transaction interface {
 
 	//Rollback any changes done
 	Rollback()
-
-	//Schema Management APIs
+	
 	//Add a new label
 	AddLabel(label string) Label
 
 	//Get the label
 	GetLabel(label string) Label
-
-	//Renames an existing label
-	//RenameLabel(label Label, newName string)
 
 	//Create
 	Add(label Label, properties...Property) string

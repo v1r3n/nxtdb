@@ -130,6 +130,7 @@ func (tx *GraphTransaction) Add(label Label, properties ...Property) string {
 		id : []byte(id),
 		label : label,
 		properties: make(map[string][]byte),
+		tx:tx,
 	}
 	for _, prop := range properties {
 		vtx.properties[prop.Key()] = prop.Value()
@@ -168,7 +169,7 @@ func (tx *GraphTransaction) RemoveEdge(from string, to string, label Label) {
 	tx.deletedEdges = append(tx.deletedEdges, GraphEdge{label, from, to})
 }
 
-func (db *GraphTransaction) GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator {
+func (tx *GraphTransaction) GetVertices(id string, edgeLabel Label, outgoing bool) VertexIterator {
 	buf := new(bytes.Buffer)
 	buf.WriteString(id)
 	buf.WriteString(edgeLabel.Id())
@@ -179,9 +180,9 @@ func (db *GraphTransaction) GetVertices(id string, edgeLabel Label, outgoing boo
 		buf.WriteByte(0)
 	}
 	opts := grocks.NewDefaultReadOptions()
-	iterator := db.db.NewIteratorCF(opts, db.cfhEdge)
+	iterator := tx.db.NewIteratorCF(opts, tx.cfhEdge)
 	prefix := buf.Bytes()
-	vi := NewGraphVertexIterator(prefix, iterator, db)
+	vi := NewGraphVertexIterator(prefix, iterator, tx)
 	return vi
 }
 
@@ -257,6 +258,7 @@ func decode(data *[]byte, id string, tx *GraphTransaction) *GraphVertex {
 	vtx := GraphVertex{
 		id: []byte(id),
 		properties:make(map[string][]byte),
+		tx: tx,
 	}
 
 	buf := bytes.NewReader(*data)

@@ -17,7 +17,7 @@ import (
 
 
 
-func main() {
+func mainx() {
 	server := redis.NewServer()
 	store := graphstore.New("./graph2.db")
 	server.Start("", 22122, &store)
@@ -26,30 +26,35 @@ func main3() {
 	var g = rocksgraph.OpenGraphDb("./graph.db")
 
 	for i :=0; i < 10; i++ {
-		go main0()
+		go main()
 	}
 	select {
 
 	}
 	defer g.Close()
 }
-func main0() {
+func main() {
+
+	log.SetFlags(log.Lshortfile | log.Lmicroseconds | log.LstdFlags | log.LUTC)
+
 	var g = rocksgraph.OpenGraphDb("./graph.db")
-	count := 1
+	var count int64 = 1
 	if len(os.Args) > 1 {
 		c, errx := strconv.Atoi(os.Args[1])
 		if errx != nil {
 			log.Fatalln("expected number", errx.Error())
 		}
-		count = c
+		count = int64(c)
 	}
 	log.Println("loop count", count)
+
 
 
 	tx := g.Tx()
 
 	var country string
-	for i := 0; i < count; i++ {
+	var i int64 = 0
+	for ; i < count; i++ {
 		country = "." + randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
 			g.NewProperty("first", []byte(randomdata.FirstName(randomdata.RandomGender))),
@@ -68,9 +73,11 @@ func main0() {
 	}
 	start := time.Now()
 	tx.Commit()
-
 	end := time.Now()
-	log.Println("Tx Commit:\t", end.Sub(start).Nanoseconds())
+
+	txTime := end.Sub(start).Nanoseconds()
+	log.Println("Tx Commit:\t", txTime)
+	log.Println(":Time per entity\t", (txTime/count))
 
 	//foundLabel2 := tx.GetLabel(country)
 	//log.Println("found again label", foundLabel2)
@@ -78,20 +85,22 @@ func main0() {
 	start2 := time.Now()
 	iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 	end2 := time.Now()
-	log.Println("Get Iter :\t", end2.Sub(start2).Nanoseconds())
+	log.Println("Get Iter :\t", end2.Sub(start2).Nanoseconds(), "country", country)
 
 	start3 := time.Now()
+	foundCount := 0
 	if iterator != nil {
 		for {
 			if !iterator.HasNext() {
 				break;
 			}
 			iterator.Next()
+			foundCount++
 			//log.Println(string(vtx.Property("country")), vtx.Id())
 		}
 	}
 	end3 := time.Now()
-	log.Println("Edge Iter:\t", end3.Sub(start3).Nanoseconds())
+	log.Println("Edge Iter:\t", end3.Sub(start3).Nanoseconds(), "Total vertices", foundCount)
 }
 
 func main1() {

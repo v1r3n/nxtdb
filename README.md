@@ -9,7 +9,6 @@ NXTDB is a graph database implementation using RocksDB as storage engine
 
 
 # TODO
-0. Code/Package organization
 1. Transaction management architecture
 2. Locking
 3. Indexing 
@@ -17,10 +16,15 @@ NXTDB is a graph database implementation using RocksDB as storage engine
 5. Caching for schema types
 6. Schema type management : labels and indices
 7. RESP based commandline
-8. Tinkerpop support?
+8. Tinkerpop / Gremlin support?
 9. Database Management and Options
 10. Performance Tests on a single node
 11. Error Handling
 12. ID supplier
 13. Bulk loading
-14. 
+14. Security
+15.
+
+
+https://www.cockroachlabs.com/blog/sql-in-cockroachdb-mapping-table-data-to-key-value-storage/
+https://www.cockroachlabs.com/blog/how-cockroachdb-distributes-atomic-transactions/
