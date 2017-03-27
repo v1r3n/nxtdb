@@ -12,12 +12,27 @@ import (
 	"log"
 	"os"
 	"nxtdb/server/redis"
-	"nxtdb/server/graph"
+	graphstore "nxtdb/server"
+	"encoding/json"
 )
 
 
+func main_json() {
+	var g = rocksgraph.OpenGraphDb("./graph.db")
+	var properties = []graph.Property{
+		g.NewProperty("key1", []byte("value1")),
+		g.NewProperty("key2", []byte("value2")),
+	}
+	log.Println(properties)
+	bytes, err := json.Marshal(properties)
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	log.Println(string(bytes))
 
-func mainx() {
+}
+
+func main() {
 	server := redis.NewServer()
 	store := graphstore.New("./graph2.db")
 	server.Start("", 22122, &store)
@@ -33,7 +48,7 @@ func main3() {
 	}
 	defer g.Close()
 }
-func main() {
+func main_g() {
 
 	log.SetFlags(log.Lshortfile | log.Lmicroseconds | log.LstdFlags | log.LUTC)
 
@@ -49,9 +64,6 @@ func main() {
 	log.Println("loop count", count)
 
 
-
-	tx := g.Tx()
-
 	var country string
 	var i int64 = 0
 	for ; i < count; i++ {
@@ -66,13 +78,13 @@ func main() {
 			g.NewProperty("uid", []byte(uuid.New().String())),
 			g.NewProperty("country", []byte(country)),
 		}
-		vtxLabel := tx.AddLabel(country)
-		id := tx.Add(vtxLabel, properties...)
+		vtxLabel := g.AddLabel(country)
+		vtx := g.Add(vtxLabel, properties...)
 		country = string(country)
-		tx.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
+		vtx.SetProperty("bio", []byte(randomdata.Paragraph()))
 	}
 	start := time.Now()
-	tx.Commit()
+	g.CommitTransaction()
 	end := time.Now()
 
 	txTime := end.Sub(start).Nanoseconds()
@@ -83,7 +95,7 @@ func main() {
 	//log.Println("found again label", foundLabel2)
 
 	start2 := time.Now()
-	iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
+	iterator := g.GetVerticesByLabel(g.GetLabel(country))
 	end2 := time.Now()
 	log.Println("Get Iter :\t", end2.Sub(start2).Nanoseconds(), "country", country)
 

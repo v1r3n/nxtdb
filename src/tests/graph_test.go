@@ -29,12 +29,49 @@ func BenchmarkGraphOps(b *testing.B) {
 }
 
 func TestGraphOps(t *testing.T) {
-	testGraphOps(t, 20)
+	//testGraphOps(t, 20)
+}
+
+func TestGraphTx(t *testing.T) {
+	got := g.GetVertex("bc4c9f06-151c-4b2b-aeb1-bb7a2037d7b1")
+	log.Println("got", got.Label())
+
+	label := g.AddLabel("test")
+	vtx := g.Add(label, g.NewProperty("key", []byte("value")))
+	found := g.GetVertex(vtx.Id())
+	if found == nil {
+		t.Fatal("GetVertex after Add returns nil")
+	}
+	if found.Label() == nil {
+		t.Fatal("Missing label on vertex")
+	}
+	labelName := found.Label().Name()
+	if len(labelName) == 0 {
+		t.Fatal("Empty label on vertex")
+	}
+	g.CommitTransaction()
+	g.NewTransaction()
+
+	found = g.GetVertex(vtx.Id())
+	if found == nil {
+		t.Fatal("GetVertex after Tx Commit returns nil")
+	}
+	if found.Label() == nil {
+		t.Fatal("Missing label on vertex after Tx commit")
+	}
+	labelName = found.Label().Name()
+	if len(labelName) == 0 {
+		t.Fatal("Empty label on vertex after Tx commit")
+	}
+
+	//found = g.GetVertex("bad id")
+	//if found != nil {
+		//t.Fatal("Found a ghost vertex!")
+	//}
 }
 
 func testGraphOps(t TB, count int) {
 
-	tx := g.Tx()
 	countries := make([]string, 0)
 	log.Println("count", strconv.Itoa(count))
 	for i := 0; i < count; i++ {
@@ -50,30 +87,30 @@ func testGraphOps(t TB, count int) {
 			g.NewProperty("country", []byte(country)),
 		}
 
-		vtxLabel := tx.AddLabel(country)
-		foundLabel := tx.GetLabel(country)
+		vtxLabel := g.AddLabel(country)
+		foundLabel := g.GetLabel(country)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), vtxLabel.Name()) {
 			t.Error("Labels do not match", vtxLabel.Name(), "not same as", foundLabel.Name())
 			t.FailNow()
 		}
 
-		id := tx.Add(vtxLabel, properties...)
-		if len(id) == 0 {
-			t.Error("ID returned for Add... is not valid/empty string")
+		vtx := g.Add(vtxLabel, properties...)
+		if vtx == nil {
+			t.Error("nil return for add")
 			t.FailNow()
 		}
 		countries = append(countries, country)
-		tx.AddProperty(id, "bio", []byte(randomdata.Paragraph()))
+		vtx.SetProperty("bio", []byte(randomdata.Paragraph()))
 	}
-	tx.Commit()
+	g.CommitTransaction()
 	for _, country := range countries {
-		foundLabel := tx.GetLabel(country)
+		foundLabel := g.GetLabel(country)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), country) {
 			t.Error("Labels do not match", country, "not same as", foundLabel.Name())
 			t.FailNow()
 		}
 
-		iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
+		iterator := g.GetVerticesByLabel(g.GetLabel(country))
 		if iterator == nil {
 			t.FailNow()
 		}
@@ -90,7 +127,7 @@ func testGraphOps(t TB, count int) {
 				t.Error("Label is missing on the vertex, expected", string(vtx.Property("country")))
 				t.FailNow()
 			}
-			//log.Println(string(vtx.Property("country")), vtx.Id(), vtx.Label())
+			//log.Println(string(vg.Property("country")), vg.Id(), vg.Label())
 			if !strings.EqualFold(country, vtx.Label().Name()) {
 				t.Error("received vertex that does not belong to the label", country, vtx.Label().Name())
 				t.FailNow()

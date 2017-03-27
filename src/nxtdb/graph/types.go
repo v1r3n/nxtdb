@@ -28,6 +28,18 @@ type Vertex interface {
 
 	//Iterator for all the incoming vertices connected by specified label
 	In(label Label) VertexIterator
+
+	//Adds or updates a property on the vertex
+	SetProperty(property string, value []byte)
+
+	//Adds or updates properties on the vertex
+	SetProperties(properties...Property)
+
+	//Remove the property on the vertex
+	RemoveProperty(property string)
+
+	//Remove the properties on the vertex
+	RemoveProperties(property...string)
 }
 
 //Directional Edge between two vertices
