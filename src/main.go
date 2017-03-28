@@ -16,6 +16,9 @@ import (
 	"encoding/json"
 )
 
+func init() {
+	log.SetFlags(log.Lshortfile | log.Lmicroseconds | log.LstdFlags | log.LUTC)
+}
 
 func main_json() {
 	var g = rocksgraph.OpenGraphDb("./graph.db")
@@ -34,7 +37,7 @@ func main_json() {
 
 func main() {
 	server := redis.NewServer()
-	store := graphstore.New("./graph2.db")
+	store := graphstore.NewGraphStore("./graph2.db")
 	server.Start("", 22122, &store)
 }
 func main3() {
@@ -66,6 +69,7 @@ func main_g() {
 
 	var country string
 	var i int64 = 0
+	tx := g.Tx()
 	for ; i < count; i++ {
 		country = "." + randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
@@ -78,13 +82,13 @@ func main_g() {
 			g.NewProperty("uid", []byte(uuid.New().String())),
 			g.NewProperty("country", []byte(country)),
 		}
-		vtxLabel := g.AddLabel(country)
-		vtx := g.Add(vtxLabel, properties...)
+		vtxLabel := tx.AddLabel(country)
+		vtx := tx.Add(vtxLabel, properties...)
 		country = string(country)
 		vtx.SetProperty("bio", []byte(randomdata.Paragraph()))
 	}
 	start := time.Now()
-	g.CommitTransaction()
+	tx.Commit()
 	end := time.Now()
 
 	txTime := end.Sub(start).Nanoseconds()
@@ -95,7 +99,7 @@ func main_g() {
 	//log.Println("found again label", foundLabel2)
 
 	start2 := time.Now()
-	iterator := g.GetVerticesByLabel(g.GetLabel(country))
+	iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 	end2 := time.Now()
 	log.Println("Get Iter :\t", end2.Sub(start2).Nanoseconds(), "country", country)
 

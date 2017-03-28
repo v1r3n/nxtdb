@@ -34,12 +34,12 @@ func (vtx GraphVertex) Label() Label {
 }
 
 func (vtx GraphVertex) Out(label Label) VertexIterator {
-	//return vtx.db.GetVertices(vtx.Id(), label, true)
+	//return vtx.tx.GetVertices(vtx.Id(), label, true)
 	return nil
 }
 
 func (vtx GraphVertex) In(label Label) VertexIterator {
-	//return vtx.db.GetVertices(vtx.Id(), label, false)
+	//return vtx.tx.GetVertices(vtx.Id(), label, false)
 	return nil
 }
 

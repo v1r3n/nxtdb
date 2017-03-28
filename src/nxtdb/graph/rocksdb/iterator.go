@@ -8,14 +8,14 @@ import (
 type GraphVertexIterator struct {
 	prefix   []byte
 	iterator *grocks.Iterator
-	db       *RocksDBGraph
+	tx       *GraphTransaction
 }
 
-func NewGraphVertexIterator(prefix []byte, iterator *grocks.Iterator, db *RocksDBGraph) *GraphVertexIterator {
+func NewGraphVertexIterator(prefix []byte, iterator *grocks.Iterator, tx *GraphTransaction) *GraphVertexIterator {
 	gvi := GraphVertexIterator{
 		prefix: prefix,
 		iterator: iterator,
-		db: db,
+		tx: tx,
 	}
 	gvi.open()
 	return &gvi
@@ -25,7 +25,7 @@ func (it *GraphVertexIterator) Next() Vertex {
 	if it.iterator.ValidForPrefix(it.prefix) {
 		id := string(it.iterator.Value().Data())
 		it.iterator.Next()
-		return it.db.GetVertex(id)
+		return it.tx.GetVertex(id)
 	}
 	return nil
 }

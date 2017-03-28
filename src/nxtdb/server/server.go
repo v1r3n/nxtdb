@@ -5,6 +5,7 @@ import (
 )
 
 type Command struct {
+	SessionId string
 	Cmd string
 	Args [][]byte
 }

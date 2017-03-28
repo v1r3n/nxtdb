@@ -29,16 +29,15 @@ func BenchmarkGraphOps(b *testing.B) {
 }
 
 func TestGraphOps(t *testing.T) {
-	//testGraphOps(t, 20)
+	testGraphOps(t, 20)
 }
 
 func TestGraphTx(t *testing.T) {
-	got := g.GetVertex("bc4c9f06-151c-4b2b-aeb1-bb7a2037d7b1")
-	log.Println("got", got.Label())
+	tx := g.Tx()
 
-	label := g.AddLabel("test")
-	vtx := g.Add(label, g.NewProperty("key", []byte("value")))
-	found := g.GetVertex(vtx.Id())
+	label := tx.AddLabel("test")
+	vtx := tx.Add(label, g.NewProperty("key", []byte("value")))
+	found := tx.GetVertex(vtx.Id())
 	if found == nil {
 		t.Fatal("GetVertex after Add returns nil")
 	}
@@ -49,10 +48,11 @@ func TestGraphTx(t *testing.T) {
 	if len(labelName) == 0 {
 		t.Fatal("Empty label on vertex")
 	}
-	g.CommitTransaction()
-	g.NewTransaction()
+	tx.Commit()
 
-	found = g.GetVertex(vtx.Id())
+	tx = g.Tx()
+
+	found = tx.GetVertex(vtx.Id())
 	if found == nil {
 		t.Fatal("GetVertex after Tx Commit returns nil")
 	}
@@ -64,16 +64,19 @@ func TestGraphTx(t *testing.T) {
 		t.Fatal("Empty label on vertex after Tx commit")
 	}
 
-	//found = g.GetVertex("bad id")
-	//if found != nil {
-		//t.Fatal("Found a ghost vertex!")
-	//}
+	found = tx.GetVertex("bad id")
+	if found != nil {
+		t.Fatal("Found a ghost vertex!")
+	}
 }
 
 func testGraphOps(t TB, count int) {
 
 	countries := make([]string, 0)
 	log.Println("count", strconv.Itoa(count))
+
+	tx := g.Tx()
+
 	for i := 0; i < count; i++ {
 		country := randomdata.Country(randomdata.FullCountry)
 		properties := []graph.Property {
@@ -87,14 +90,14 @@ func testGraphOps(t TB, count int) {
 			g.NewProperty("country", []byte(country)),
 		}
 
-		vtxLabel := g.AddLabel(country)
-		foundLabel := g.GetLabel(country)
+		vtxLabel := tx.AddLabel(country)
+		foundLabel := tx.GetLabel(country)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), vtxLabel.Name()) {
 			t.Error("Labels do not match", vtxLabel.Name(), "not same as", foundLabel.Name())
 			t.FailNow()
 		}
 
-		vtx := g.Add(vtxLabel, properties...)
+		vtx := tx.Add(vtxLabel, properties...)
 		if vtx == nil {
 			t.Error("nil return for add")
 			t.FailNow()
@@ -102,15 +105,16 @@ func testGraphOps(t TB, count int) {
 		countries = append(countries, country)
 		vtx.SetProperty("bio", []byte(randomdata.Paragraph()))
 	}
-	g.CommitTransaction()
+	tx.Commit()
+
 	for _, country := range countries {
-		foundLabel := g.GetLabel(country)
+		foundLabel := tx.GetLabel(country)
 		if foundLabel == nil || !strings.EqualFold(foundLabel.Name(), country) {
 			t.Error("Labels do not match", country, "not same as", foundLabel.Name())
 			t.FailNow()
 		}
 
-		iterator := g.GetVerticesByLabel(g.GetLabel(country))
+		iterator := tx.GetVerticesByLabel(tx.GetLabel(country))
 		if iterator == nil {
 			t.FailNow()
 		}

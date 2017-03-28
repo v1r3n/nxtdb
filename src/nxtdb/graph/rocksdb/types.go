@@ -28,8 +28,6 @@ func (label GraphLabel) Id() string {
 	return label.id
 }
 
-
-
 func (prop GraphProperty) Key() string {
 	return prop.Name
 }

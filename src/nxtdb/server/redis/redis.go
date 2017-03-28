@@ -8,6 +8,7 @@ import (
 	"io"
 	server "nxtdb/server"
 	"strings"
+	"github.com/google/uuid"
 )
 
 type RedisCommandParser struct {
@@ -109,11 +110,12 @@ func parseCommand(reader *bufio.Reader) (server.Command, error) {
 
 func handle(conn net.Conn, store *server.Store) {
 	defer conn.Close()
-
+	sessionId := uuid.New().String()
 	cmdParser := NewRedisCmdParser()
 
 	for {
 		cmd, err := cmdParser.ParseCommand(bufio.NewReader(conn))
+		cmd.SessionId = sessionId
 		if err == nil || err == io.EOF {
 			response, err := (*store).ExecuteCommand(&cmd)
 			resp := ""
